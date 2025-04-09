@@ -17,6 +17,8 @@ This is just a simple project I want to work on over the easter holidays while m
 ## 🚧 Syntax Implemented So Far
 
 - Variable assignment for Integers
+- Simple Output for both variables and strings/integers. 
+- Outputs from the file main.htb (see example script)
 
 ## ✅ Goals & Outcomes
 

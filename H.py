@@ -1,26 +1,76 @@
-# PARSER
+# Basic lexer for the H language. 
+import ply.lex as lex
+
+# Basic Tokens for setting a variable
+tokens = [
+    'SET',
+    'OUTPUT',
+    'IDENTIFIER',
+    'EQUAL',
+    'NUMBER',
+    'STRING'
+]
+
+# Stored output
+output = []
+
+# Regex for each token
+reserved = {
+    'set': 'SET',
+    'output': 'OUTPUT'
+}
+
+def t_IDENTIFIER(t):
+    r'[A-Za-z_][A-Za-z0-9_]*'
+    t.type = reserved.get(t.value, 'IDENTIFIER')
+    return t
+
+t_EQUAL = r'='
+
+def t_NUMBER(t):
+    r'\d+'
+    t.value = int(t.value)    
+    return t
+
+def t_STRING(t):
+    r'"[^"\n]*"'  # Double-quoted strings only
+    t.value = t.value[1:-1]  # Remove the quotes from the value
+    return t
+
+# Regex for ignored characters. (spaces and tabs)
+t_ignore  = ' \t'
+
+# Error handling rule 
+def t_error(t):
+    t.lexer.skip(1)
+    
+with open('main.htb', 'r') as f:
+    data = f.read()
+
+# Build the lexer
+lexer = lex.lex()
+
+# Give the lexer some input
+lexer.input(data)
 
 from collections import namedtuple
 
 LexToken = namedtuple('LexToken', ['type', 'value', 'lineno', 'lexpos'])
 
-tokens = (
-    LexToken('SET', 'set', 1, 0),
-    LexToken('IDENTIFIER', 'x', 1, 4),
-    LexToken('EQUAL', '=', 1, 6),
-    LexToken('NUMBER', 10, 1, 8),
+tokens = []
 
-    LexToken('SET', 'set', 1, 0),
-    LexToken('IDENTIFIER', 'y', 1, 4),
-    LexToken('EQUAL', '=', 1, 6),
-    LexToken('NUMBER', 15, 1, 8),
+# Tokenize
+while True:
+    tok = lexer.token()
+    if not tok: 
+        break      # No more input
+    tokens.append(tok)
+
+
+
+
     
-    LexToken('OUTPUT', 'output', 2, 0),
-    LexToken('IDENTIFIER', 'x', 2, 7),
-    
-    LexToken('OUTPUT', 'output', 2, 0),
-    LexToken('IDENTIFIER', 'y', 2, 7),
-)
+# PARSER
 
 class Parser:
     def __init__(self, tokens):
@@ -60,10 +110,20 @@ class Parser:
         self.match('SET')
         identifier_token = self.match('IDENTIFIER')
         self.match('EQUAL')  # Match '='
-        number_token = self.match('NUMBER')
 
-        value_node = NumberNode(number_token.value)
+        tok = self.current()  # Look at the next token
+
+        if tok.type == 'NUMBER':
+            number_token = self.match('NUMBER')
+            value_node = NumberNode(number_token.value)
+        elif tok.type == 'STRING':
+            string_token = self.match('STRING')
+            value_node = StringNode(string_token.value)
+        else:
+            raise SyntaxError(f"Expected NUMBER or STRING but got {tok}")
+
         return VarAssignNode(identifier_token.value, value_node)
+
 
     def parse_output(self):
         self.match('OUTPUT')
@@ -146,5 +206,3 @@ ast_nodes = parser.parse_statements()
 interpreter = Interpreter()
 for node in ast_nodes:
     interpreter.visit(node)
-
-print(interpreter.variables)
