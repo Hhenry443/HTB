@@ -1,18 +1,1 @@
-set x = 10
-set y = 15
-set htb = "The best language ever!"
-
-set z = x + y
-
-if z = 25 {
-    output "Maths is working"
-    set success = true
-}
-
-if success = true {
-    output "Successful maths!"
-}
-
-if htb = "The best language ever!" {
-    output "Yes it is!"
-}
+fart 

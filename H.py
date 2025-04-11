@@ -248,7 +248,7 @@ class Parser:
             self.advance()
             return FartNode(NumberNode(tok.value))
         else:
-            raise SyntaxError(f"Expected STRING or IDENTIFIER after 'output', got {tok}")
+            raise SyntaxError(f"Expected NUMBER after 'fart', got {tok}")
         
         
 class VarAssignNode:
