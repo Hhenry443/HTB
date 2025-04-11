@@ -1,8 +1,8 @@
 # Basic lexer for the H language. 
 import ply.lex as lex
 
-# Basic Tokens for setting a variable
 tokens = (
+    'IF',
     'OUTPUT',
     'FART',
     'SET',
@@ -29,7 +29,8 @@ reserved = {
     'output': 'OUTPUT',
     'fart': 'FART',
     'true': 'TRUE',
-    'false': 'FALSE'
+    'false': 'FALSE',
+    'if': 'IF'
 }
 
 def t_IDENTIFIER(t):
@@ -96,7 +97,6 @@ while True:
         break      # No more input
     tokens.append(tok)
 
-
 # PARSER
 
 class Parser:
@@ -130,21 +130,40 @@ class Parser:
                 statements.append(self.parse_output())
             elif tok_type == 'FART':
                 statements.append(self.parse_fart())
+            elif tok_type == 'IF':
+                statements.append(self.parse_if())
             else:
                 raise SyntaxError(f"Unexpected token type: {tok_type}")
 
         return statements
 
+    def parse_if(self):
+        self.match('IF')
+        condition = self.parse_expression()  # Parse the conditional expression (x == true)
+
+        # Check for the OUTPUT statement after the condition
+        tok = self.current()
+
+        if tok and tok.type == 'OUTPUT':
+            output = self.parse_output()  # Parse the output statement
+        else:
+            # If there's no OUTPUT after IF, handle it accordingly (maybe print a default message)
+            raise SyntaxError(f"Expected 'OUTPUT' after 'if' condition, got {tok}")
+
+        return IfNode(condition, output)
+
+    
     def parse_expression(self):
         node = self.parse_term()
 
-        while self.current() and self.current().type in ('PLUS', 'MINUS'):
+        while self.current() and self.current().type in ('PLUS', 'MINUS', 'EQUAL'):
             op_token = self.current()
             self.advance()
-            right = self.parse_term()
+            right = self.parse_term()  # This could be another term, or in this case, a boolean literal
             node = BinOpNode(node, op_token, right)
 
         return node
+
 
     def parse_term(self):
         node = self.parse_factor()
@@ -174,7 +193,7 @@ class Parser:
             return BooleanNode(False)
         elif tok.type == 'IDENTIFIER':
             self.advance()
-            return VarAccessNode(tok.value)
+            return VarAccessNode(tok.value)  # Return a node for variable access
         elif tok.type == 'LPAREN':
             self.advance()
             node = self.parse_expression()
@@ -182,7 +201,6 @@ class Parser:
             return node
         else:
             raise SyntaxError(f"Unexpected token in factor: {tok}")
-
 
     def parse_var_assign(self):
         self.match('SET')
@@ -277,6 +295,14 @@ class FartNode:
         
     def __str__(self):
         return f"FartNode(intensity={self.intensity})"
+
+class IfNode:
+    def __init__(self, condition, output):
+        self.condition = condition
+        self.output = output
+    
+    def __str__(self):
+        return f"IfNode(condition={self.condition}, output={self.output})"
     
 # INTERPRETER  
 
@@ -329,6 +355,8 @@ class Interpreter:
             return left * right
         elif op == 'DIVIDE':
             return left / right
+        elif op == 'EQUAL':
+            return left == right
         else:
             raise Exception(f"Unknown operator {op}")
 
@@ -341,7 +369,12 @@ class Interpreter:
         output = output + 'p'
         print(f'{output}')
         
-        
+    def visit_IfNode(self, node):
+        condition_value = self.visit(node.condition)
+        if condition_value:
+            self.visit(node.output)
+
+                
 parser = Parser(tokens)
 ast_nodes = parser.parse_statements()
 
@@ -349,4 +382,3 @@ interpreter = Interpreter()
 for node in ast_nodes:
     interpreter.visit(node)
 
-print(interpreter.variables)

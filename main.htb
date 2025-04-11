@@ -1,5 +1,4 @@
-set x = "Mac sucks dick"
-set y = 10 + 5
+set htb = "The best language ever"
 
-output x 
-output y
+if htb = "The best language ever":
+    output "It really is!!"
