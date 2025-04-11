@@ -18,6 +18,8 @@ tokens = (
     'DIVIDE',
     'LPAREN',
     'RPAREN',
+    'LBRACE',
+    'RBRACE'
 )
 
 # Stored output
@@ -66,6 +68,8 @@ t_MULTIPLY = r'\*'
 t_DIVIDE = r'/'
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
+t_LBRACE = r'\{'
+t_RBRACE = r'\}'
 
 
 # Regex for ignored characters. (spaces and tabs)
@@ -137,21 +141,31 @@ class Parser:
 
         return statements
 
+    def parse_statement(self):
+        tok_type = self.current().type
+        if tok_type == 'SET':
+            return self.parse_var_assign()
+        elif tok_type == 'OUTPUT':
+            return self.parse_output()
+        elif tok_type == 'FART':
+            return self.parse_fart()
+        elif tok_type == 'IF':
+            return self.parse_if()
+        else:
+            raise SyntaxError(f"Unexpected token in statement: {tok_type}")
+    
     def parse_if(self):
         self.match('IF')
-        condition = self.parse_expression()  # Parse the conditional expression (x == true)
+        condition = self.parse_expression()
+        self.match('LBRACE')  # Match {
 
-        # Check for the OUTPUT statement after the condition
-        tok = self.current()
+        statements = []
+        while self.current() and self.current().type != 'RBRACE':
+            statements.append(self.parse_statement())
 
-        if tok and tok.type == 'OUTPUT':
-            output = self.parse_output()  # Parse the output statement
-        else:
-            # If there's no OUTPUT after IF, handle it accordingly (maybe print a default message)
-            raise SyntaxError(f"Expected 'OUTPUT' after 'if' condition, got {tok}")
+        self.match('RBRACE')  # Match }
 
-        return IfNode(condition, output)
-
+        return IfNode(condition, statements)  # ← This was missing
     
     def parse_expression(self):
         node = self.parse_term()
@@ -297,12 +311,13 @@ class FartNode:
         return f"FartNode(intensity={self.intensity})"
 
 class IfNode:
-    def __init__(self, condition, output):
+    def __init__(self, condition, statements):
         self.condition = condition
-        self.output = output
-    
+        self.statements = statements  # List of statements now
+
     def __str__(self):
-        return f"IfNode(condition={self.condition}, output={self.output})"
+        return f"IfNode(condition={self.condition}, statements={[str(s) for s in self.statements]})"
+
     
 # INTERPRETER  
 
@@ -370,9 +385,11 @@ class Interpreter:
         print(f'{output}')
         
     def visit_IfNode(self, node):
-        condition_value = self.visit(node.condition)
-        if condition_value:
-            self.visit(node.output)
+        condition_result = self.visit(node.condition)
+        if condition_result:
+            for statement in node.statements:
+                self.visit(statement)
+
 
                 
 parser = Parser(tokens)
