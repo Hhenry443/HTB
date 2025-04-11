@@ -17,9 +17,10 @@ This is just a simple project I want to work on over the easter holidays while m
 ## 🚧 Syntax Implemented So Far
 
 - Variable assignment for Integers
-- Simple Output for both variables and strings/integers. 
+- Simple Output for both variables and strings/integers/Boolean Values. 
 - Outputs from the file main.htb (see example script)
 - Simple arithmetic functionality
+- You can fart with varying intensity with: fart [intensity: int] 
 
 ## ✅ Goals & Outcomes
 
