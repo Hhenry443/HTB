@@ -1,1 +1,5 @@
-fart 10
+set x = "Mac sucks dick"
+set y = 10 + 5
+
+output x 
+output y

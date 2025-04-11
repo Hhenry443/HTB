@@ -4,10 +4,13 @@ import ply.lex as lex
 # Basic Tokens for setting a variable
 tokens = (
     'OUTPUT',
+    'FART',
+    'SET',
     'STRING',
     'NUMBER',
+    'TRUE',
+    'FALSE',
     'IDENTIFIER',
-    'SET',
     'EQUAL',
     'PLUS',
     'MINUS',
@@ -15,7 +18,6 @@ tokens = (
     'DIVIDE',
     'LPAREN',
     'RPAREN',
-    'FART'
 )
 
 # Stored output
@@ -25,7 +27,9 @@ output = []
 reserved = {
     'set': 'SET',
     'output': 'OUTPUT',
-    'fart': 'FART'
+    'fart': 'FART',
+    'true': 'TRUE',
+    'false': 'FALSE'
 }
 
 def t_IDENTIFIER(t):
@@ -43,6 +47,16 @@ def t_NUMBER(t):
 def t_STRING(t):
     r'"[^"\n]*"'  # Double-quoted strings only
     t.value = t.value[1:-1]  # Remove the quotes from the value
+    return t
+
+def t_TRUE(t):
+    r'TRUE'
+    t.value = 'TRUE'
+    return t
+
+def t_FALSE(t):
+    r'FALSE'
+    t.value = 'FALSE'
     return t
 
 t_PLUS = r'\+'
@@ -152,6 +166,12 @@ class Parser:
         elif tok.type == 'STRING':
             self.advance()
             return StringNode(tok.value)
+        elif tok.type == 'TRUE':
+            self.advance()
+            return BooleanNode(True)
+        elif tok.type == 'FALSE':
+            self.advance()
+            return BooleanNode(False)
         elif tok.type == 'IDENTIFIER':
             self.advance()
             return VarAccessNode(tok.value)
@@ -221,6 +241,13 @@ class StringNode:
     def __str__(self):
         return f"StringNode(value={self.value})"
 
+class BooleanNode:
+    def __init__(self, value):
+        self.value = value  # True or False
+
+    def __str__(self):
+        return f"BooleanNode(value={self.value})"
+    
 class VarAccessNode:
     def __init__(self, name):
         self.name = name
@@ -280,6 +307,9 @@ class Interpreter:
     def visit_StringNode(self, node):
         return node.value
 
+    def visit_BooleanNode(self, node):
+        return node.value
+    
     def visit_VarAccessNode(self, node):
         if node.name in self.variables:
             return self.variables[node.name]
@@ -318,3 +348,5 @@ ast_nodes = parser.parse_statements()
 interpreter = Interpreter()
 for node in ast_nodes:
     interpreter.visit(node)
+
+print(interpreter.variables)
