@@ -14,7 +14,8 @@ tokens = (
     'MULTIPLY',
     'DIVIDE',
     'LPAREN',
-    'RPAREN'
+    'RPAREN',
+    'FART'
 )
 
 # Stored output
@@ -23,7 +24,8 @@ output = []
 # Regex for each token
 reserved = {
     'set': 'SET',
-    'output': 'OUTPUT'
+    'output': 'OUTPUT',
+    'fart': 'FART'
 }
 
 def t_IDENTIFIER(t):
@@ -81,7 +83,6 @@ while True:
     tokens.append(tok)
 
 
-    
 # PARSER
 
 class Parser:
@@ -113,6 +114,8 @@ class Parser:
                 statements.append(self.parse_var_assign())
             elif tok_type == 'OUTPUT':
                 statements.append(self.parse_output())
+            elif tok_type == 'FART':
+                statements.append(self.parse_fart())
             else:
                 raise SyntaxError(f"Unexpected token type: {tok_type}")
 
@@ -185,6 +188,15 @@ class Parser:
         else:
             raise SyntaxError(f"Expected STRING or IDENTIFIER after 'output', got {tok}")
 
+    def parse_fart(self):
+        self.match('FART')
+        tok = self.current()
+        
+        if tok.type == 'NUMBER':
+            self.advance()
+            return FartNode(NumberNode(tok.value))
+        else:
+            raise SyntaxError(f"Expected STRING or IDENTIFIER after 'output', got {tok}")
         
         
 class VarAssignNode:
@@ -232,7 +244,13 @@ class BinOpNode:
     def __str__(self):
         return f"BinOpNode(left={self.left}, op={self.op}, right={self.right})"
 
-
+class FartNode:
+    def __init__(self, intensity):
+        self.intensity = intensity
+        
+    def __str__(self):
+        return f"FartNode(intensity={self.intensity})"
+    
 # INTERPRETER  
 
 class Interpreter:
@@ -284,11 +302,19 @@ class Interpreter:
         else:
             raise Exception(f"Unknown operator {op}")
 
-
+    def visit_FartNode(self, node):
+        intensity = self.visit(node.intensity)
+        output = 'br'
+        for i in range(intensity):
+            output = output + 'a'
+        
+        output = output + 'p'
+        print(f'{output}')
+        
+        
 parser = Parser(tokens)
 ast_nodes = parser.parse_statements()
 
-    
 interpreter = Interpreter()
 for node in ast_nodes:
     interpreter.visit(node)
