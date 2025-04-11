@@ -2,14 +2,20 @@
 import ply.lex as lex
 
 # Basic Tokens for setting a variable
-tokens = [
-    'SET',
+tokens = (
     'OUTPUT',
-    'IDENTIFIER',
-    'EQUAL',
+    'STRING',
     'NUMBER',
-    'STRING'
-]
+    'IDENTIFIER',
+    'SET',
+    'EQUAL',
+    'PLUS',
+    'MINUS',
+    'MULTIPLY',
+    'DIVIDE',
+    'LPAREN',
+    'RPAREN'
+)
 
 # Stored output
 output = []
@@ -36,6 +42,14 @@ def t_STRING(t):
     r'"[^"\n]*"'  # Double-quoted strings only
     t.value = t.value[1:-1]  # Remove the quotes from the value
     return t
+
+t_PLUS = r'\+'
+t_MINUS = r'-'
+t_MULTIPLY = r'\*'
+t_DIVIDE = r'/'
+t_LPAREN = r'\('
+t_RPAREN = r'\)'
+
 
 # Regex for ignored characters. (spaces and tabs)
 t_ignore  = ' \t'
@@ -65,8 +79,6 @@ while True:
     if not tok: 
         break      # No more input
     tokens.append(tok)
-
-
 
 
     
@@ -106,24 +118,57 @@ class Parser:
 
         return statements
 
+    def parse_expression(self):
+        node = self.parse_term()
+
+        while self.current() and self.current().type in ('PLUS', 'MINUS'):
+            op_token = self.current()
+            self.advance()
+            right = self.parse_term()
+            node = BinOpNode(node, op_token, right)
+
+        return node
+
+    def parse_term(self):
+        node = self.parse_factor()
+
+        while self.current() and self.current().type in ('MULTIPLY', 'DIVIDE'):
+            op_token = self.current()
+            self.advance()
+            right = self.parse_factor()
+            node = BinOpNode(node, op_token, right)
+
+        return node
+
+    def parse_factor(self):
+        tok = self.current()
+
+        if tok.type == 'NUMBER':
+            self.advance()
+            return NumberNode(tok.value)
+        elif tok.type == 'STRING':
+            self.advance()
+            return StringNode(tok.value)
+        elif tok.type == 'IDENTIFIER':
+            self.advance()
+            return VarAccessNode(tok.value)
+        elif tok.type == 'LPAREN':
+            self.advance()
+            node = self.parse_expression()
+            self.match('RPAREN')
+            return node
+        else:
+            raise SyntaxError(f"Unexpected token in factor: {tok}")
+
+
     def parse_var_assign(self):
         self.match('SET')
         identifier_token = self.match('IDENTIFIER')
         self.match('EQUAL')  # Match '='
 
-        tok = self.current()  # Look at the next token
-
-        if tok.type == 'NUMBER':
-            number_token = self.match('NUMBER')
-            value_node = NumberNode(number_token.value)
-        elif tok.type == 'STRING':
-            string_token = self.match('STRING')
-            value_node = StringNode(string_token.value)
-        else:
-            raise SyntaxError(f"Expected NUMBER or STRING but got {tok}")
+        value_node = self.parse_expression()  # <--- now parses arithmetic expressions
 
         return VarAssignNode(identifier_token.value, value_node)
-
 
     def parse_output(self):
         self.match('OUTPUT')
@@ -147,22 +192,45 @@ class VarAssignNode:
         self.name = name      # e.g. 'x'
         self.value = value    # an AST node (like NumberNode)
 
+    def __str__(self):
+        return f"VarAssignNode(name={self.name}, value={self.value})"
+
 class NumberNode:
     def __init__(self, value):
         self.value = value    # e.g. 5
+
+    def __str__(self):
+        return f"NumberNode(value={self.value})"
 
 class StringNode:
     def __init__(self, value):
         self.value = value
 
+    def __str__(self):
+        return f"StringNode(value={self.value})"
+
 class VarAccessNode:
     def __init__(self, name):
         self.name = name
+
+    def __str__(self):
+        return f"VarAccessNode(name={self.name})"
 
 class OutputNode:
     def __init__(self, value):
         self.value = value  # This can be a StringNode or IdentifierNode
 
+    def __str__(self):
+        return f"OutputNode(value={self.value})"
+
+class BinOpNode:
+    def __init__(self, left_node, op_token, right_node):
+        self.left = left_node
+        self.op = op_token
+        self.right = right_node
+
+    def __str__(self):
+        return f"BinOpNode(left={self.left}, op={self.op}, right={self.right})"
 
 
 # INTERPRETER  
@@ -199,10 +267,28 @@ class Interpreter:
             return self.variables[node.name]
         else:
             raise NameError(f"Variable '{node.name}' is not defined")
+        
+    def visit_BinOpNode(self, node):
+        left = self.visit(node.left)
+        right = self.visit(node.right)
+        op = node.op.type
+
+        if op == 'PLUS':
+            return left + right
+        elif op == 'MINUS':
+            return left - right
+        elif op == 'MULTIPLY':
+            return left * right
+        elif op == 'DIVIDE':
+            return left / right
+        else:
+            raise Exception(f"Unknown operator {op}")
+
 
 parser = Parser(tokens)
 ast_nodes = parser.parse_statements()
 
+    
 interpreter = Interpreter()
 for node in ast_nodes:
     interpreter.visit(node)
