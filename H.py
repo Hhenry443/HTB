@@ -3,6 +3,7 @@ import ply.lex as lex
 
 tokens = (
     'IF',
+    'REPEAT',
     'OUTPUT',
     'FART',
     'SET',
@@ -32,7 +33,8 @@ reserved = {
     'fart': 'FART',
     'true': 'TRUE',
     'false': 'FALSE',
-    'if': 'IF'
+    'if': 'IF',
+    'repeat': 'REPEAT'
 }
 
 def t_IDENTIFIER(t):
@@ -136,6 +138,8 @@ class Parser:
                 statements.append(self.parse_fart())
             elif tok_type == 'IF':
                 statements.append(self.parse_if())
+            elif tok_type == 'REPEAT':
+                return self.parse_repeat()
             else:
                 raise SyntaxError(f"Unexpected token type: {tok_type}")
 
@@ -151,6 +155,8 @@ class Parser:
             return self.parse_fart()
         elif tok_type == 'IF':
             return self.parse_if()
+        elif tok_type == 'REPEAT':
+            return self.parse_repeat()
         else:
             raise SyntaxError(f"Unexpected token in statement: {tok_type}")
     
@@ -166,6 +172,19 @@ class Parser:
         self.match('RBRACE')  # Match }
 
         return IfNode(condition, statements)  # ← This was missing
+    
+    def parse_repeat(self):
+        self.match('REPEAT')
+        count = self.parse_factor()
+        self.match('LBRACE')  # Match {
+
+        statements = []
+        while self.current() and self.current().type != 'RBRACE':
+            statements.append(self.parse_statement())
+
+        self.match('RBRACE')  # Match }
+
+        return RepeatNode(count, statements)  # ← This was missing
     
     def parse_expression(self):
         node = self.parse_term()
@@ -318,6 +337,13 @@ class IfNode:
     def __str__(self):
         return f"IfNode(condition={self.condition}, statements={[str(s) for s in self.statements]})"
 
+class RepeatNode:
+    def __init__(self, count, statements):
+        self.count = count
+        self.statements = statements  # List of statements now
+
+    def __str__(self):
+        return f"RepeatNode(count={self.count}, statements={[str(s) for s in self.statements]})"
     
 # INTERPRETER  
 
@@ -389,13 +415,25 @@ class Interpreter:
         if condition_result:
             for statement in node.statements:
                 self.visit(statement)
+                
+    def visit_RepeatNode(self, node):
+        count = self.visit(node.count)
+        
+        for i in range(count):
+            for statement in node.statements:
+                self.visit(statement)
 
 
                 
 parser = Parser(tokens)
 ast_nodes = parser.parse_statements()
 
+
 interpreter = Interpreter()
+
+if not isinstance(ast_nodes, list):
+    ast_nodes = [ast_nodes]
+
 for node in ast_nodes:
     interpreter.visit(node)
 
