@@ -22,6 +22,7 @@ This is just a simple project I want to work on over the easter holidays while m
 - Simple arithmetic functionality
 - You can fart with varying intensity with: fart [intensity: int] 
 - If statements
+- Finite loops
 
 ## ✅ Goals & Outcomes
 
