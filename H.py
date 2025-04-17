@@ -1,4 +1,4 @@
-# Basic lexer for the H language. 
+# Basic lexer for the HTB language. 
 import ply.lex as lex
 
 tokens = (

@@ -1,0 +1,57 @@
+// Setting a variable 
+
+set intVar = 15
+set strVar = "Hello World"
+set boolVarTrue = true
+set boolVarFalse = false
+
+set x = 10
+set y = 5
+
+
+// Arithmetic
+
+set z = x + y
+set z = x - y 
+set z = x * y
+set z = x / y 
+
+
+// Output
+
+output intVar
+output strVar
+output "Hello World"
+
+
+// Farting
+
+fart 10
+fart 100
+fart 15
+
+
+// Conditionals
+
+if boolVarTrue {
+    output "Value is true!"
+}
+
+if x = 10 {
+    output "x is 10"
+}
+
+if x + y = 15 {
+    output "Result is 15!"
+}
+
+
+// Simple Loops
+
+repeat 10 {
+    output "Output 10 times"
+}
+
+repeat 100 {
+    output "Output 100 times
+}
